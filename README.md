@@ -1,8 +1,3 @@
-Got you — you want a **clean, ready-to-paste README.md** in **proper Markdown**, formatted exactly like GitHub expects, with headings, tables, badges, code blocks, emojis, everything clean and attractive.
-
-Here is a **FULLY FORMATTED README.md** for your repo — **just copy–paste this directly into `README.md`** and push to GitHub.
-
----
 
 # 🏛️ DAO Governance DApp
 
