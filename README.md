@@ -1,333 +1,394 @@
-🔐 VaultGuard
-Multi-Signature Treasury with Time-Locked Governance
+Got you — you want a **clean, ready-to-paste README.md** in **proper Markdown**, formatted exactly like GitHub expects, with headings, tables, badges, code blocks, emojis, everything clean and attractive.
 
-A production-ready, security-driven smart contract system that powers decentralized treasury management with multi-signature approvals, proposal voting, and time-delayed execution.
+Here is a **FULLY FORMATTED README.md** for your repo — **just copy–paste this directly into `README.md`** and push to GitHub.
 
-Built for DAOs, DeFi protocols, investment collectives, and teams that need secure, transparent, and governance-aligned fund control.
+---
 
-⭐ Features at a Glance
-✔️ Multi-Signature Approvals
+# 🏛️ DAO Governance DApp
 
-Configurable M-of-N signer threshold (e.g., 3-of-5)
+A decentralized autonomous organization (DAO) governance platform built on Ethereum that enables democratic decision-making through proposal creation, voting, execution, treasury management, and member-based access control.
 
-Approvals, rejections & vote changes
+![Solidity](https://img.shields.io/badge/Solidity-0.8.19-blue)
+![React](https://img.shields.io/badge/React-18-blue)
+![Foundry](https://img.shields.io/badge/Foundry-Latest-orange)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-Automatic majority/rejection calculations
+---
 
-✔️ Time-Locked Execution
+## 📋 Table of Contents
 
-Default: 48-hour time-lock
+* [✨ Features](#-features)
+* [🛠️ Tech Stack](#️-tech-stack)
+* [📦 Prerequisites](#-prerequisites)
+* [🚀 Installation](#-installation)
+* [🔧 Smart Contract Deployment](#-smart-contract-deployment)
+* [🎨 Frontend Setup](#-frontend-setup)
+* [📱 Usage](#-usage)
+* [🧪 Testing](#-testing)
+* [📁 Project Structure](#-project-structure)
+* [🔐 Smart Contract Details](#-smart-contract-details)
+* [🐛 Troubleshooting](#-troubleshooting)
+* [🌐 Deployment Checklist](#-deployment-checklist)
+* [📊 Gas Usage](#-gas-usage)
+* [🔒 Security Considerations](#-security-considerations)
+* [🤝 Contributing](#-contributing)
+* [📝 License](#-license)
+* [🙏 Acknowledgments](#-acknowledgments)
+* [📞 Contact](#-contact)
+* [🗺️ Roadmap](#-roadmap)
 
-Prevents rushed or malicious execution
+---
 
-Optional extended execution window (3 days, configurable)
+## ✨ Features
 
-✔️ Role-Based Access Control
+### **Core Functionality**
 
-ADMIN_ROLE: Manage signers, parameters, emergency controls
+* 🗳️ **Democratic Voting System**
+* 📝 **Proposal Creation**
+* ⚡ **Automatic Proposal Execution**
+* 👥 **Member Management**
+* 💰 **Treasury Management (ETH)**
+* 🎯 **Configurable Quorum**
 
-SIGNER_ROLE: Vote on proposals
+### **Advanced Features**
 
-PROPOSER_ROLE: Create proposals
+* ⏰ **Voting Period (3 days default)**
+* 🔍 **Real-time Proposal Updates**
+* 🎨 **Modern, Responsive UI**
+* 🔐 **Secure Solidity Architecture**
+* 📊 **DAO Dashboard Analytics**
 
-EXECUTOR_ROLE: Execute after the time-lock
+---
 
-✔️ Governance-Driven Proposal Lifecycle
-Created → Active → Approved → Queued → Executable → Executed  
-                     ↓
-               Rejected / Cancelled / Expired
+## 🛠️ Tech Stack
 
-✔️ Compatible Treasury
+### **Smart Contract**
 
-ETH + ERC20 support
+* Solidity `^0.8.19`
+* Foundry
+* OpenZeppelin
 
-Contract interactions through calldata
+### **Frontend**
 
-Deposit tracking per token
+* React 18
+* Vite
+* Ethers.js v6
+* Tailwind CSS
+* Lucide Icons
 
-Emergency recovery
+### **Networks**
 
-✔️ Hardened Security
+* Anvil (local)
+* Sepolia (recommended)
+* Ethereum
 
-ReentrancyGuard
+---
 
-Pausable circuit breaker
+## 📦 Prerequisites
 
-SafeERC20
+Install:
 
-Explicit state management
+* Node.js 18+
+* Git
+* Foundry
+* MetaMask
+* npm or yarn
 
-Extensive unit tests
+Install Foundry:
 
-🏗️ Architecture
-VaultGuard.sol
-VaultGuard
-├── AccessControl
-│   ├── ADMIN_ROLE
-│   ├── SIGNER_ROLE
-│   ├── PROPOSER_ROLE
-│   └── EXECUTOR_ROLE
-├── Proposal Management
-│   ├── creation
-│   ├── voting
-│   ├── queueing
-│   └── execution
-├── Treasury (ETH + ERC20)
-└── Security
-    ├── Pausable
-    ├── ReentrancyGuard
-    └── Emergency recovery
+```bash
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+```
 
-Proposal States
-State	Description	Transition
-Pending	Just created	→ Active
-Active	Voting period	→ Approved, Rejected, Expired
-Approved	Majority met	→ Queued
-Queued	Time-lock	→ Executable, Cancelled
-Executable	Ready to execute	→ Executed, Expired
-Executed	Completed	Terminal
-Rejected	Failed vote	Terminal
-Cancelled	Admin cancel	Terminal
-Expired	Time exceeded	Terminal
-🚀 Quick Start
-Install
-git clone https://github.com/yourusername/vaultguard
-cd vaultguard
+---
+
+## 🚀 Installation
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/yourusername/dao-dapp.git
+cd dao-dapp
+```
+
+### 2. Install contract dependencies
+
+```bash
 forge install
-forge build
-forge test
+```
 
-Deploy to Testnet
+### 3. Install frontend dependencies
+
+```bash
+cd frontend
+npm install
+```
+
+---
+
+## 🔧 Smart Contract Deployment
+
+### 1. Create `.env`
+
+```bash
 cp .env.example .env
-forge script script/Deploy.s.sol:DeployVaultGuardTestnet \
+nano .env
+```
+
+### Add:
+
+```env
+PRIVATE_KEY=your_private_key
+SEPOLIA_RPC_URL=your_url
+ETHERSCAN_API_KEY=your_key
+MEMBER_1=0x123...
+MEMBER_2=0x234...
+MEMBER_3=0x345...
+QUORUM=2
+```
+
+### 2. Compile
+
+```bash
+forge build
+```
+
+### 3. Run tests
+
+```bash
+forge test -vvv
+```
+
+### 4. Deploy locally (Anvil)
+
+```bash
+anvil
+```
+
+In another terminal:
+
+```bash
+forge script script/DeployDAO.s.sol:DeployDAO \
+  --rpc-url http://127.0.0.1:8545 \
+  --broadcast
+```
+
+### 5. Deploy to Sepolia
+
+```bash
+forge script script/DeployDAO.s.sol:DeployDAO \
   --rpc-url $SEPOLIA_RPC_URL \
   --broadcast \
-  --verify
+  --verify -vvvv
+```
 
-📚 Usage
-Create Proposal
-vaultGuard.createProposal(
-    recipient,
-    address(0),      // ETH
-    10 ether,
-    "",
-    "Q4 Development Milestone"
-);
+---
 
-Vote
-vaultGuard.approve(proposalId);
-vaultGuard.reject(proposalId);
+## 🎨 Frontend Setup
 
-Execute
-vaultGuard.executeProposal(proposalId);
+### 1. Update contract address
 
-Query
-vaultGuard.getProposal(proposalId);
-vaultGuard.getTimeLockRemaining(proposalId);
-vaultGuard.getTreasuryBalance(token);
+Edit:
 
-🔒 Security
-Built-In Protections
+```javascript
+const DAO_ADDRESS = "0xYourContractAddress";
+```
 
-ReentrancyGuard
+### 2. Run development server
 
-Pausable emergency switch
+```bash
+npm run dev
+```
 
-SafeERC20
+### 3. Build production
 
-Input validation on all proposals
+```bash
+npm run build
+```
 
-No delegatecall usage
+---
 
-Full event logging
+## 📱 Usage
 
-Best Practices Followed
+### **Connect Wallet**
 
-Checks-Effects-Interactions
+* Click **"Connect Wallet"**
+* Approve MetaMask
 
-Minimal trust assumptions
+### **Create Proposal**
 
-Strict governance control
+* Provide:
 
-Well-tested edge cases
+  * Description
+  * Target address (optional)
+  * ETH amount (optional)
 
-🧪 Testing Suite
+### **Vote**
+
+* Members can vote **For** or **Against**
+
+### **Execute**
+
+* After 3-day voting period
+* If quorum + majority achieved
+
+### **Fund DAO Treasury**
+
+* Send ETH directly via UI
+
+---
+
+## 🧪 Testing
+
+```bash
 forge test
-forge test --match-test test_ExecuteProposal
+forge test -vvv
 forge test --gas-report
+forge test --match-test testCreateProposal
+```
+
+### Coverage Report
+
+```bash
 forge coverage
+```
+
+---
 
-Coverage Includes:
+## 📁 Project Structure
 
-Deployment
+```
+dao-dapp/
+├── src/
+│   └── DAO.sol
+├── test/
+│   └── DAO.t.sol
+├── script/
+│   └── DeployDAO.s.sol
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   └── index.css
+│   ├── public/
+│   └── vite.config.js
+├── .env
+├── foundry.toml
+└── README.md
+```
 
-Proposal creation
+---
 
-Voting flows
+## 🔐 Smart Contract Details
 
-Time-lock logic
+### **Key Functions**
 
-ETH & ERC20 execution
+* `createProposal()`
+* `vote()`
+* `executeProposal()`
+* `addMember()`
+* `removeMember()`
+* `updateQuorum()`
 
-Emergency actions
+### **Events**
 
-Access control
+```solidity
+event ProposalCreated(uint256 proposalId, string description, uint256 deadline);
+event Voted(uint256 proposalId, address voter, bool support);
+event ProposalExecuted(uint256 proposalId, address executor);
+event MemberAdded(address member);
+event MemberRemoved(address member);
+```
 
-Reentrancy & security
+---
 
-Expirations & edge cases
+## 🐛 Troubleshooting
 
-Target: >95% coverage
+| Issue                   | Fix                               |
+| ----------------------- | --------------------------------- |
+| forge not found         | reinstall foundry                 |
+| .env line errors        | `dos2unix .env`                   |
+| Metamask not connecting | switch networks                   |
+| Not a member error      | ensure deployed addresses correct |
 
-⚙️ Configuration
-Default Parameters
-TIME_LOCK_PERIOD = 2 days;
-VOTING_PERIOD = 7 days;
-EXECUTION_WINDOW = 3 days;
-MAX_ACTIVE_PROPOSALS_PER_ADDRESS = 5;
+---
 
-Configurable
+## 🌐 Deployment Checklist
 
-Approval threshold
+* [ ] Tests passing
+* [ ] Contract verified
+* [ ] Correct DAO members added
+* [ ] Quorum configured
+* [ ] Frontend updated
+* [ ] No private keys pushed
+* [ ] Treasury funded
 
-Signer set
+---
 
-Role assignments
+## 📊 Gas Usage
 
-📊 Gas Benchmarks (Approx.)
-Operation	Gas
-Deploy	~3,500,000
-Create Proposal	~150,000
-Vote	~80,000
-Execute (ETH)	~70,000
-Execute (ERC20)	~90,000
-Cancel	~50,000
-🎯 Use Cases
-🏛️ 1. DAO Treasury
+| Function         | Gas      |
+| ---------------- | -------- |
+| Create Proposal  | ~150k    |
+| Vote             | ~50k     |
+| Execute Proposal | 80k–200k |
+| Add Member       | 50k      |
 
-Secure, transparent fund governance.
+---
 
-💧 2. Protocol Treasury
+## 🔒 Security Considerations
 
-Multi-sig protection for protocol-controlled liquidity.
+* Uses Solidity 0.8+ overflow protection
+* Emits events for all critical actions
+* No reentrancy for ETH transfers
+* Public functions use access control
+* Not audited — use at your own risk
 
-💼 3. Investment DAO
+---
 
-Collective decisioning with auditability.
+## 🤝 Contributing
 
-🎁 4. Grant Programs
+1. Fork repo
+2. Create branch
+3. Commit changes
+4. Open PR
 
-Milestone-based funding with community oversight.
+---
 
-🏢 5. Corporate Treasury
+## 📝 License
 
-Secure treasury operations for crypto-native teams.
+MIT License — see `LICENSE`.
 
-🔧 Advanced Features
-Contract Interactions
-bytes memory data = abi.encodeWithSignature(
-    "stake(uint256)", 
-    stakeAmount
-);
+---
 
-vaultGuard.createProposal(
-    stakingContract,
-    tokenAddress,
-    stakeAmount,
-    data,
-    "Stake 1000 tokens"
-);
+## 🙏 Acknowledgments
 
-Emergency Controls
-vaultGuard.pause();
-vaultGuard.emergencyWithdraw(token, safeAddress, amount);
-vaultGuard.unpause();
+* OpenZeppelin
+* Foundry
+* Ethers.js
+* Tailwind
 
-🛣️ Roadmap
-✅ Phase 1 – Core
+---
 
-Multi-sig voting
+## 📞 Contact
 
-Time-lock
+* **GitHub:** [https://github.com/Dev4057](https://github.com/Dev4057)
+* **Twitter:** @Dev_9007
+* **Discord:** devang6061
 
-Roles
+---
 
-ERC20 + ETH
+## 🗺️ Roadmap
 
-🔜 Phase 2 – Enhanced Governance
+* [ ] Delegated voting
+* [ ] Proposal categories
+* [ ] Time-lock mechanism
+* [ ] Multi-sig support
+* [ ] Token-weighted voting
+* [ ] ENS integration
+* [ ] Mobile app
 
-Weighted voting
+---
 
-Delegation
-
-Recurring payments
-
-Spending limits
-
-🔜 Phase 3 – Integrations
-
-Subgraph
-
-Notification bots
-
-Dashboard UI
-
-🔜 Phase 4 – Advanced Governance
-
-Quadratic voting
-
-Time-weighted voting
-
-Category-based thresholds
-
-Veto logic
-
-🤝 Contributing
-
-Fork the repo
-
-Create a feature branch
-
-Add tests
-
-Ensure all tests pass:
-
-forge test
-
-
-Open a PR
-
-Dev Tools
-forge fmt --check
-solhint 'src/**/*.sol'
-forge coverage
-
-📄 License
-
-MIT License — see LICENSE.
-
-❤️ Acknowledgments
-
-Built with:
-
-Foundry
-
-OpenZeppelin
-
-Solidity
-
-Inspired by:
-
-Gnosis Safe
-
-Compound Timelock
-
-OpenZeppelin Governor
-
-📞 Support
-
-Issues: GitHub Issues
-
-Discussions: GitHub Discussions
-
-Twitter: @Dev_9007
+**Built with ❤️ by Devang**
+*Made in 2025*
