@@ -1,270 +1,231 @@
 🔐 VaultGuard
-Multi-Signature Treasury with Time-Locked Spending Proposals
+Multi-Signature Treasury with Time-Locked Governance
 
-A secure, production-ready smart contract system for managing organizational treasuries with multi-signature approval and time-delayed execution.
+A production-ready, security-driven smart contract system that powers decentralized treasury management with multi-signature approvals, proposal voting, and time-delayed execution.
 
-Show Image
-Show Image
-Show Image
+Built for DAOs, DeFi protocols, investment collectives, and teams that need secure, transparent, and governance-aligned fund control.
 
-📖 Overview
-VaultGuard is an advanced multi-signature treasury management system that extends traditional multi-sig wallets with:
+⭐ Features at a Glance
+✔️ Multi-Signature Approvals
 
-✅ Time-locked execution for security buffer
-✅ Role-based access control for flexible governance
-✅ Spending proposals with voting mechanism
-✅ Support for ETH and ERC20 tokens
-✅ Emergency pause & recovery mechanisms
-✅ Transparent on-chain governance
-Perfect for DAOs, DeFi protocols, investment funds, and any organization requiring secure treasury management.
+Configurable M-of-N signer threshold (e.g., 3-of-5)
 
-🎯 Key Features
-Multi-Signature Approvals
-Configurable M-of-N signature requirement (e.g., 3-of-5)
-Signers can change their votes before execution
-Automatic rejection threshold calculation
-Time-Lock Security
-48-hour mandatory delay after approval
-Prevents immediate execution of compromised proposals
-Provides community review period
-Configurable execution window (3 days default)
-Role-Based Access
-Admin: Manage signers, configure parameters, emergency controls
-Signer: Vote on spending proposals
-Proposer: Create spending proposals
-Executor: Execute approved proposals after time-lock
-Proposal Lifecycle
-Created → Active → Approved → Queued → Executable → Executed
-                           ↓
-                     Rejected/Cancelled/Expired
-Treasury Management
-Hold ETH and multiple ERC20 tokens
-Track balances per token
-Support for contract interactions via calldata
-Emergency withdrawal capabilities
+Approvals, rejections & vote changes
+
+Automatic majority/rejection calculations
+
+✔️ Time-Locked Execution
+
+Default: 48-hour time-lock
+
+Prevents rushed or malicious execution
+
+Optional extended execution window (3 days, configurable)
+
+✔️ Role-Based Access Control
+
+ADMIN_ROLE: Manage signers, parameters, emergency controls
+
+SIGNER_ROLE: Vote on proposals
+
+PROPOSER_ROLE: Create proposals
+
+EXECUTOR_ROLE: Execute after the time-lock
+
+✔️ Governance-Driven Proposal Lifecycle
+Created → Active → Approved → Queued → Executable → Executed  
+                     ↓
+               Rejected / Cancelled / Expired
+
+✔️ Compatible Treasury
+
+ETH + ERC20 support
+
+Contract interactions through calldata
+
+Deposit tracking per token
+
+Emergency recovery
+
+✔️ Hardened Security
+
+ReentrancyGuard
+
+Pausable circuit breaker
+
+SafeERC20
+
+Explicit state management
+
+Extensive unit tests
+
 🏗️ Architecture
-Core Components
-solidity
-VaultGuard (Main Contract)
-├── Roles (AccessControl)
+VaultGuard.sol
+VaultGuard
+├── AccessControl
 │   ├── ADMIN_ROLE
 │   ├── SIGNER_ROLE
 │   ├── PROPOSER_ROLE
 │   └── EXECUTOR_ROLE
 ├── Proposal Management
-│   ├── Create proposals
-│   ├── Vote (approve/reject)
-│   ├── Queue approved proposals
-│   └── Execute after time-lock
-├── Treasury
-│   ├── ETH balance
-│   ├── ERC20 balances
-│   └── Deposit functions
+│   ├── creation
+│   ├── voting
+│   ├── queueing
+│   └── execution
+├── Treasury (ETH + ERC20)
 └── Security
-    ├── ReentrancyGuard
     ├── Pausable
-    └── Emergency functions
+    ├── ReentrancyGuard
+    └── Emergency recovery
+
 Proposal States
-State	Description	Can Transition To
-Pending	Just created	Active
-Active	Open for voting	Approved, Rejected, Expired
-Approved	Threshold met	Queued
-Queued	In time-lock period	Executable, Cancelled
-Executable	Ready to execute	Executed, Expired
-Executed	Completed ✓	Terminal
-Rejected	Failed voting	Terminal
-Cancelled	Manually cancelled	Terminal
-Expired	Time window passed	Terminal
+State	Description	Transition
+Pending	Just created	→ Active
+Active	Voting period	→ Approved, Rejected, Expired
+Approved	Majority met	→ Queued
+Queued	Time-lock	→ Executable, Cancelled
+Executable	Ready to execute	→ Executed, Expired
+Executed	Completed	Terminal
+Rejected	Failed vote	Terminal
+Cancelled	Admin cancel	Terminal
+Expired	Time exceeded	Terminal
 🚀 Quick Start
-Installation
-bash
-# Clone the repository
+Install
 git clone https://github.com/yourusername/vaultguard
 cd vaultguard
-
-# Install dependencies
 forge install
-
-# Build contracts
 forge build
-
-# Run tests
 forge test
-Deployment
-bash
-# Setup environment
+
+Deploy to Testnet
 cp .env.example .env
-# Edit .env with your configuration
-
-# Deploy to testnet
 forge script script/Deploy.s.sol:DeployVaultGuardTestnet \
-    --rpc-url $SEPOLIA_RPC_URL \
-    --broadcast \
-    --verify
-📚 Usage Examples
-Creating a Proposal
-solidity
-// Example: Send 10 ETH to recipient
-vaultGuard.createProposal(
-    recipientAddress,           // Where to send
-    address(0),                 // address(0) for ETH
-    10 ether,                   // Amount
-    "",                         // No calldata
-    "Q4 Development Milestone"  // Description
-);
-Voting on Proposals
-solidity
-// Approve proposal
-vaultGuard.approve(proposalId);
+  --rpc-url $SEPOLIA_RPC_URL \
+  --broadcast \
+  --verify
 
-// Or reject it
+📚 Usage
+Create Proposal
+vaultGuard.createProposal(
+    recipient,
+    address(0),      // ETH
+    10 ether,
+    "",
+    "Q4 Development Milestone"
+);
+
+Vote
+vaultGuard.approve(proposalId);
 vaultGuard.reject(proposalId);
 
-// Change your vote (before execution)
-vaultGuard.approve(proposalId); // Switch to approval
-Executing Proposals
-solidity
-// After time-lock expires (48 hours)
+Execute
 vaultGuard.executeProposal(proposalId);
-Querying State
-solidity
-// Get proposal details
-(
-    uint256 id,
-    address proposer,
-    address recipient,
-    address token,
-    uint256 amount,
-    string memory description,
-    uint256 approvalCount,
-    uint256 rejectionCount,
-    uint256 createdAt,
-    uint256 queuedAt,
-    uint256 executedAt,
-    ProposalState state
-) = vaultGuard.getProposal(proposalId);
 
-// Check time remaining
-uint256 timeLeft = vaultGuard.getTimeLockRemaining(proposalId);
+Query
+vaultGuard.getProposal(proposalId);
+vaultGuard.getTimeLockRemaining(proposalId);
+vaultGuard.getTreasuryBalance(token);
 
-// Check treasury balance
-uint256 ethBalance = vaultGuard.getTreasuryBalance(address(0));
-uint256 tokenBalance = vaultGuard.getTreasuryBalance(tokenAddress);
-🔒 Security Features
-Built-in Protections
-ReentrancyGuard: Prevents reentrancy attacks on execution
-Pausable: Emergency circuit breaker
-Access Control: Role-based permissions
-Time-Lock: 48-hour delay prevents rushed/malicious execution
-Input Validation: Comprehensive checks on all inputs
-SafeERC20: Protection against non-standard tokens
-Security Best Practices
-✅ Checks-Effects-Interactions pattern
-✅ No delegatecall usage (reduces attack surface)
-✅ Explicit state management
-✅ Comprehensive event logging
-✅ Gas-efficient operations
-✅ Well-tested edge cases
-Auditing
-bash
-# Run static analysis
-slither src/VaultGuard.sol
+🔒 Security
+Built-In Protections
 
-# Check coverage
-forge coverage
+ReentrancyGuard
 
-# Gas profiling
-forge test --gas-report
-🧪 Testing
-Run Test Suite
-bash
-# All tests
+Pausable emergency switch
+
+SafeERC20
+
+Input validation on all proposals
+
+No delegatecall usage
+
+Full event logging
+
+Best Practices Followed
+
+Checks-Effects-Interactions
+
+Minimal trust assumptions
+
+Strict governance control
+
+Well-tested edge cases
+
+🧪 Testing Suite
 forge test
-
-# Specific test
 forge test --match-test test_ExecuteProposal
-
-# With gas report
 forge test --gas-report
-
-# With coverage
 forge coverage
-Test Coverage
-The test suite covers:
 
-✅ Deployment scenarios
-✅ Treasury management (ETH & ERC20)
-✅ Proposal creation & validation
-✅ Voting mechanisms (approve/reject/change)
-✅ Time-lock functionality
-✅ Execution (ETH & ERC20)
-✅ Cancellation flows
-✅ Admin functions (add/remove signers, threshold updates)
-✅ Emergency pause & recovery
-✅ Edge cases (expiration, limits, etc.)
-✅ Access control enforcement
-✅ Reentrancy protection
-Target Coverage: >95% line and branch coverage
+Coverage Includes:
+
+Deployment
+
+Proposal creation
+
+Voting flows
+
+Time-lock logic
+
+ETH & ERC20 execution
+
+Emergency actions
+
+Access control
+
+Reentrancy & security
+
+Expirations & edge cases
+
+Target: >95% coverage
 
 ⚙️ Configuration
 Default Parameters
-solidity
-TIME_LOCK_PERIOD = 2 days     // 48 hours
-VOTING_PERIOD = 7 days         // 1 week
-EXECUTION_WINDOW = 3 days      // After time-lock
-MAX_ACTIVE_PROPOSALS_PER_ADDRESS = 5
-Configurable Parameters
-solidity
-approvalThreshold   // Number of approvals needed (3-of-5, etc.)
-signerCount        // Total number of signers
-Role Management
-Admins can:
+TIME_LOCK_PERIOD = 2 days;
+VOTING_PERIOD = 7 days;
+EXECUTION_WINDOW = 3 days;
+MAX_ACTIVE_PROPOSALS_PER_ADDRESS = 5;
 
-Add/remove signers
-Update approval threshold
-Grant/revoke roles
-Pause/unpause contract
-Emergency withdraw (when paused)
-📊 Gas Costs
-Approximate gas costs on Ethereum mainnet:
+Configurable
 
-Operation	Gas Cost (approx)
-Deploy Contract	~3,500,000
+Approval threshold
+
+Signer set
+
+Role assignments
+
+📊 Gas Benchmarks (Approx.)
+Operation	Gas
+Deploy	~3,500,000
 Create Proposal	~150,000
-Vote (Approve/Reject)	~80,000
-Execute Proposal (ETH)	~70,000
-Execute Proposal (ERC20)	~90,000
-Cancel Proposal	~50,000
-Note: Actual costs vary with network conditions and proposal complexity
-
+Vote	~80,000
+Execute (ETH)	~70,000
+Execute (ERC20)	~90,000
+Cancel	~50,000
 🎯 Use Cases
-1. DAO Treasury Management
-Manage community funds with transparent governance
-Time-lock protects against governance attacks
-Public proposal history builds trust
-2. DeFi Protocol Treasuries
-Secure protocol-owned liquidity
-Multi-sig protection for admin functions
-Integration with DeFi protocols via calldata
-3. Investment DAOs
-Pooled investment funds
-Democratic decision-making on investments
-Clear audit trail for investors
-4. Grant Programs
-Transparent grant distribution
-Community oversight on spending
-Milestone-based funding
-5. Startup/Company Treasuries
-Corporate governance for crypto assets
-Require multiple executive approvals
-Professional treasury management
+🏛️ 1. DAO Treasury
+
+Secure, transparent fund governance.
+
+💧 2. Protocol Treasury
+
+Multi-sig protection for protocol-controlled liquidity.
+
+💼 3. Investment DAO
+
+Collective decisioning with auditability.
+
+🎁 4. Grant Programs
+
+Milestone-based funding with community oversight.
+
+🏢 5. Corporate Treasury
+
+Secure treasury operations for crypto-native teams.
+
 🔧 Advanced Features
 Contract Interactions
-Proposals can include calldata for complex operations:
-
-solidity
-// Example: Approve and stake in DeFi protocol
-bytes memory calldata = abi.encodeWithSignature(
+bytes memory data = abi.encodeWithSignature(
     "stake(uint256)", 
     stakeAmount
 );
@@ -273,88 +234,100 @@ vaultGuard.createProposal(
     stakingContract,
     tokenAddress,
     stakeAmount,
-    calldata,
-    "Stake 1000 tokens in Protocol X"
+    data,
+    "Stake 1000 tokens"
 );
-Batch Operations
-Create multiple proposals for coordinated actions:
 
-solidity
-// Proposal 1: Approve tokens
-// Proposal 2: Execute swap
-// Proposal 3: Distribute proceeds
-Emergency Procedures
-solidity
-// Pause all operations
+Emergency Controls
 vaultGuard.pause();
-
-// Emergency withdrawal (only when paused)
-vaultGuard.emergencyWithdraw(tokenAddress, safeAddress, amount);
-
-// Resume operations
+vaultGuard.emergencyWithdraw(token, safeAddress, amount);
 vaultGuard.unpause();
+
 🛣️ Roadmap
-Phase 1: Core Implementation ✅
+✅ Phase 1 – Core
+
 Multi-sig voting
-Time-lock mechanism
-Role-based access
-ETH & ERC20 support
-Phase 2: Enhanced Features (Planned)
- Weighted voting (based on token holdings)
- Delegation support
- Recurring payments
- Spending limits per role
- Advanced queuing (priority system)
-Phase 3: Integration (Planned)
- Subgraph for proposal indexing
- Discord/Telegram notification bot
- Frontend dashboard
- Mobile app
-Phase 4: Advanced Governance (Planned)
- Quadratic voting
- Time-weighted voting
- Proposal categories with different thresholds
- Veto powers for specific roles
+
+Time-lock
+
+Roles
+
+ERC20 + ETH
+
+🔜 Phase 2 – Enhanced Governance
+
+Weighted voting
+
+Delegation
+
+Recurring payments
+
+Spending limits
+
+🔜 Phase 3 – Integrations
+
+Subgraph
+
+Notification bots
+
+Dashboard UI
+
+🔜 Phase 4 – Advanced Governance
+
+Quadratic voting
+
+Time-weighted voting
+
+Category-based thresholds
+
+Veto logic
+
 🤝 Contributing
-Contributions are welcome! Please follow these guidelines:
 
-Fork the repository
-Create a feature branch (git checkout -b feature/amazing-feature)
-Write tests for your changes
-Ensure all tests pass (forge test)
-Commit your changes (git commit -m 'Add amazing feature')
-Push to the branch (git push origin feature/amazing-feature)
-Open a Pull Request
-Development Setup
-bash
-# Install pre-commit hooks
+Fork the repo
+
+Create a feature branch
+
+Add tests
+
+Ensure all tests pass:
+
+forge test
+
+
+Open a PR
+
+Dev Tools
 forge fmt --check
-
-# Run linter
 solhint 'src/**/*.sol'
-
-# Check coverage before PR
 forge coverage
-📄 License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
-🙏 Acknowledgments
+📄 License
+
+MIT License — see LICENSE.
+
+❤️ Acknowledgments
+
 Built with:
 
-Foundry - Ethereum development toolkit
-OpenZeppelin - Secure smart contract library
-Solidity - Smart contract language
+Foundry
+
+OpenZeppelin
+
+Solidity
+
 Inspired by:
 
 Gnosis Safe
+
 Compound Timelock
+
 OpenZeppelin Governor
+
 📞 Support
+
 Issues: GitHub Issues
+
 Discussions: GitHub Discussions
+
 Twitter: @Dev_9007
-⚠️ Disclaimer
-This software is provided "as is", without warranty of any kind. Use at your own risk. Always conduct thorough testing and security audits before deploying to mainnet with real funds.
-
-Built with ❤️ for the Ethereum community
-
