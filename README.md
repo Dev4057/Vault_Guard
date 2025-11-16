@@ -385,5 +385,4 @@ MIT License — see `LICENSE`.
 
 ---
 
-**Built with ❤️ by Devang**
-*Made in 2025*
+**Built with ❤️ in Ethereum Ecosystem**
