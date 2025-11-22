@@ -463,7 +463,7 @@ const VaultGuardDApp = () => {
               </ol>
               <div className="mt-4 p-3 bg-yellow-500/10 rounded border border-yellow-500/30">
                 <p className="text-yellow-200 text-sm">
-                  <strong>⚠️ Note:</strong> Make sure you're connected to Sepolia testnet
+                  <strong> Note:</strong> Make sure you're connected to Sepolia testnet
                 </p>
               </div>
             </div>

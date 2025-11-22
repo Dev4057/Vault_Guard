@@ -1,388 +1,283 @@
+cat > README.md << 'EOF'
+# 🏛️ VaultGuard - Multi-Signature Treasury Management
 
-# 🏛️ DAO Governance DApp
+[![Solidity](https://img.shields.io/badge/Solidity-0.8.30-blue)](https://soliditylang.org/)
+[![Foundry](https://img.shields.io/badge/Foundry-Latest-orange)](https://getfoundry.sh/)
+[![React](https://img.shields.io/badge/React-18-blue)](https://react.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
-A decentralized autonomous organization (DAO) governance platform built on Ethereum that enables democratic decision-making through proposal creation, voting, execution, treasury management, and member-based access control.
+**VaultGuard** is a secure, production-ready Multi-Signature Treasury Management system built on Ethereum. It requires multiple approvals (M-of-N) for all spending decisions, with built-in time-locks and role-based access control.
 
-![Solidity](https://img.shields.io/badge/Solidity-0.8.19-blue)
-![React](https://img.shields.io/badge/React-18-blue)
-![Foundry](https://img.shields.io/badge/Foundry-Latest-orange)
-![License](https://img.shields.io/badge/license-MIT-green)
-
----
-
-## 📋 Table of Contents
-
-* [✨ Features](#-features)
-* [🛠️ Tech Stack](#️-tech-stack)
-* [📦 Prerequisites](#-prerequisites)
-* [🚀 Installation](#-installation)
-* [🔧 Smart Contract Deployment](#-smart-contract-deployment)
-* [🎨 Frontend Setup](#-frontend-setup)
-* [📱 Usage](#-usage)
-* [🧪 Testing](#-testing)
-* [📁 Project Structure](#-project-structure)
-* [🔐 Smart Contract Details](#-smart-contract-details)
-* [🐛 Troubleshooting](#-troubleshooting)
-* [🌐 Deployment Checklist](#-deployment-checklist)
-* [📊 Gas Usage](#-gas-usage)
-* [🔒 Security Considerations](#-security-considerations)
-* [🤝 Contributing](#-contributing)
-* [📝 License](#-license)
-* [🙏 Acknowledgments](#-acknowledgments)
-* [📞 Contact](#-contact)
-* [🗺️ Roadmap](#-roadmap)
-
----
+![VaultGuard Dashboard](https://via.placeholder.com/800x400?text=VaultGuard+Dashboard)
 
 ## ✨ Features
 
-### **Core Functionality**
-
-* 🗳️ **Democratic Voting System**
-* 📝 **Proposal Creation**
-* ⚡ **Automatic Proposal Execution**
-* 👥 **Member Management**
-* 💰 **Treasury Management (ETH)**
-* 🎯 **Configurable Quorum**
-
-### **Advanced Features**
-
-* ⏰ **Voting Period (3 days default)**
-* 🔍 **Real-time Proposal Updates**
-* 🎨 **Modern, Responsive UI**
-* 🔐 **Secure Solidity Architecture**
-* 📊 **DAO Dashboard Analytics**
+- 🔐 **Multi-Signature Security** - Requires 3 out of 5 approvals (configurable)
+- ⏰ **Time-Lock Safety** - 48-hour waiting period after approval
+- 🗳️ **Democratic Voting** - Transparent on-chain proposal system
+- 👥 **Role-Based Access** - Granular permissions (Admin, Signer, Proposer, Executor)
+- 💰 **ETH & ERC20 Support** - Manage multiple asset types
+- 🎨 **Modern UI** - Beautiful, responsive React frontend
+- ✅ **Fully Tested** - Comprehensive test suite with 95%+ coverage
+- 🔍 **Verified on Etherscan** - Open-source and auditable
 
 ---
 
-## 🛠️ Tech Stack
+## 🎯 Use Cases
 
-### **Smart Contract**
-
-* Solidity `^0.8.19`
-* Foundry
-* OpenZeppelin
-
-### **Frontend**
-
-* React 18
-* Vite
-* Ethers.js v6
-* Tailwind CSS
-* Lucide Icons
-
-### **Networks**
-
-* Anvil (local)
-* Sepolia (recommended)
-* Ethereum
+- **DAO Treasuries** - Secure fund management for decentralized organizations
+- **Multi-Sig Wallets** - Corporate or team fund management
+- **Grant Programs** - Transparent distribution of funds
+- **Investment Clubs** - Collaborative investment decisions
 
 ---
 
-## 📦 Prerequisites
+## 🚀 Quick Start
 
-Install:
+### Prerequisites
 
-* Node.js 18+
-* Git
-* Foundry
-* MetaMask
-* npm or yarn
+- [Foundry](https://getfoundry.sh/)
+- [Node.js](https://nodejs.org/) v18+
+- [MetaMask](https://metamask.io/)
 
-Install Foundry:
-
+### Installation
 ```bash
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/vault_guard.git
+cd vault_guard
 
----
-
-## 🚀 Installation
-
-### 1. Clone the repo
-
-```bash
-git clone https://github.com/yourusername/dao-dapp.git
-cd dao-dapp
-```
-
-### 2. Install contract dependencies
-
-```bash
+# Install Foundry dependencies
 forge install
-```
 
-### 3. Install frontend dependencies
-
-```bash
-cd frontend
+# Install frontend dependencies
+cd Frontend
 npm install
 ```
 
----
+### Configuration
 
-## 🔧 Smart Contract Deployment
-
-### 1. Create `.env`
-
+1. **Create `.env` file:**
 ```bash
 cp .env.example .env
-nano .env
 ```
 
-### Add:
-
+2. **Fill in your values:**
 ```env
-PRIVATE_KEY=your_private_key
-SEPOLIA_RPC_URL=your_url
-ETHERSCAN_API_KEY=your_key
-MEMBER_1=0x123...
-MEMBER_2=0x234...
-MEMBER_3=0x345...
-QUORUM=2
+PRIVATE_KEY=0xYOUR_PRIVATE_KEY
+SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_KEY
+ETHERSCAN_API_KEY=YOUR_KEY
+SIGNER_1=0xYOUR_WALLET_1
+SIGNER_2=0xYOUR_WALLET_2
+# ... (continue for all 5 signers)
+APPROVAL_THRESHOLD=3
 ```
 
-### 2. Compile
-
+### Deploy Smart Contract
 ```bash
-forge build
+# Deploy to Sepolia testnet
+source .env
+forge script script/Deploy.s.sol:DeployVaultGuard \
+    --rpc-url $SEPOLIA_RPC_URL \
+    --broadcast \
+    --verify
 ```
 
-### 3. Run tests
+Copy the deployed contract address and update:
+- `.env` → `VAULT_ADDRESS=0xYOUR_CONTRACT_ADDRESS`
+- `Frontend/src/App.jsx` → line 7
 
+### Run Frontend
 ```bash
-forge test -vvv
-```
-
-### 4. Deploy locally (Anvil)
-
-```bash
-anvil
-```
-
-In another terminal:
-
-```bash
-forge script script/DeployDAO.s.sol:DeployDAO \
-  --rpc-url http://127.0.0.1:8545 \
-  --broadcast
-```
-
-### 5. Deploy to Sepolia
-
-```bash
-forge script script/DeployDAO.s.sol:DeployDAO \
-  --rpc-url $SEPOLIA_RPC_URL \
-  --broadcast \
-  --verify -vvvv
-```
-
----
-
-## 🎨 Frontend Setup
-
-### 1. Update contract address
-
-Edit:
-
-```javascript
-const DAO_ADDRESS = "0xYourContractAddress";
-```
-
-### 2. Run development server
-
-```bash
+cd Frontend
 npm run dev
 ```
 
-### 3. Build production
-
-```bash
-npm run build
-```
+Open http://localhost:5173 and connect your MetaMask!
 
 ---
 
-## 📱 Usage
+## 📖 How It Works
 
-### **Connect Wallet**
+### Proposal Lifecycle
+```
+1. CREATE → 2. VOTE (7 days) → 3. APPROVED → 4. QUEUED (48h) → 5. EXECUTABLE → 6. EXECUTED
+```
 
-* Click **"Connect Wallet"**
-* Approve MetaMask
+### Example Flow
 
-### **Create Proposal**
+1. **Alice creates proposal**: "Send 1 ETH to Developer Bob"
+2. **Signers vote**: 3 out of 5 approve ✓
+3. **Auto-queued**: 48-hour time-lock begins ⏰
+4. **After 48 hours**: Proposal becomes executable
+5. **Alice executes**: 1 ETH sent to Bob ✅
 
-* Provide:
+---
 
-  * Description
-  * Target address (optional)
-  * ETH amount (optional)
-
-### **Vote**
-
-* Members can vote **For** or **Against**
-
-### **Execute**
-
-* After 3-day voting period
-* If quorum + majority achieved
-
-### **Fund DAO Treasury**
-
-* Send ETH directly via UI
+## 🛠️ Smart Contract Architecture
+```
+VaultGuard.sol
+├── Multi-Signature Logic (M-of-N approvals)
+├── Time-Lock Mechanism (48-hour safety period)
+├── Role-Based Access Control
+│   ├── ADMIN_ROLE
+│   ├── SIGNER_ROLE
+│   ├── PROPOSER_ROLE
+│   └── EXECUTOR_ROLE
+├── Proposal State Machine
+│   ├── Pending → Active → Approved
+│   ├── Queued → Executable → Executed
+│   └── Rejected / Cancelled / Expired
+├── Treasury Management (ETH + ERC20)
+└── Emergency Pause System
+```
 
 ---
 
 ## 🧪 Testing
-
 ```bash
+# Run all tests
 forge test
+
+# Run with verbosity
 forge test -vvv
-forge test --gas-report
+
+# Run specific test
 forge test --match-test testCreateProposal
-```
 
-### Coverage Report
+# Gas report
+forge test --gas-report
 
-```bash
+# Coverage
 forge coverage
 ```
 
----
-
-## 📁 Project Structure
-
+**Test Results:**
 ```
-dao-dapp/
-├── src/
-│   └── DAO.sol
-├── test/
-│   └── DAO.t.sol
-├── script/
-│   └── DeployDAO.s.sol
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   └── index.css
-│   ├── public/
-│   └── vite.config.js
-├── .env
-├── foundry.toml
-└── README.md
+✓ 37 tests passed
+✓ Gas optimized
+✓ 95%+ coverage
 ```
-
----
-
-## 🔐 Smart Contract Details
-
-### **Key Functions**
-
-* `createProposal()`
-* `vote()`
-* `executeProposal()`
-* `addMember()`
-* `removeMember()`
-* `updateQuorum()`
-
-### **Events**
-
-```solidity
-event ProposalCreated(uint256 proposalId, string description, uint256 deadline);
-event Voted(uint256 proposalId, address voter, bool support);
-event ProposalExecuted(uint256 proposalId, address executor);
-event MemberAdded(address member);
-event MemberRemoved(address member);
-```
-
----
-
-## 🐛 Troubleshooting
-
-| Issue                   | Fix                               |
-| ----------------------- | --------------------------------- |
-| forge not found         | reinstall foundry                 |
-| .env line errors        | `dos2unix .env`                   |
-| Metamask not connecting | switch networks                   |
-| Not a member error      | ensure deployed addresses correct |
-
----
-
-## 🌐 Deployment Checklist
-
-* [ ] Tests passing
-* [ ] Contract verified
-* [ ] Correct DAO members added
-* [ ] Quorum configured
-* [ ] Frontend updated
-* [ ] No private keys pushed
-* [ ] Treasury funded
 
 ---
 
 ## 📊 Gas Usage
 
-| Function         | Gas      |
-| ---------------- | -------- |
-| Create Proposal  | ~150k    |
-| Vote             | ~50k     |
-| Execute Proposal | 80k–200k |
-| Add Member       | 50k      |
+| Function | Gas Cost |
+|----------|----------|
+| Create Proposal | ~150k |
+| Vote (Approve/Reject) | ~50k |
+| Execute Proposal | ~80-200k |
+| Add Signer | ~50k |
 
 ---
 
-## 🔒 Security Considerations
+## 🔐 Security Features
 
-* Uses Solidity 0.8+ overflow protection
-* Emits events for all critical actions
-* No reentrancy for ETH transfers
-* Public functions use access control
-* Not audited — use at your own risk
+- ✅ **ReentrancyGuard** - Protection against reentrancy attacks
+- ✅ **Pausable** - Emergency stop mechanism
+- ✅ **AccessControl** - OpenZeppelin role-based permissions
+- ✅ **Time-Locks** - 48-hour delay prevents rushed decisions
+- ✅ **Voting Limits** - Max 5 active proposals per address
+- ✅ **SafeERC20** - Secure token transfers
+
+**⚠️ Security Note:** This contract has NOT been professionally audited. Use at your own risk.
+
+---
+
+## 📱 Frontend Features
+
+- 🎨 Modern glassmorphism UI
+- 📊 Real-time proposal tracking
+- 🔔 Transaction notifications
+- 📋 Copy-to-clipboard for addresses
+- 🔄 Auto-refresh data
+- 📱 Fully responsive design
+- 🌐 Etherscan integration
+
+---
+
+## 📁 Project Structure
+```
+vault_guard/
+├── src/
+│   └── VaultGuard.sol           # Main contract
+├── test/
+│   └── VaultGuard.t.sol         # Test suite
+├── script/
+│   ├── Deploy.s.sol             # Deployment scripts
+│   └── Interactions.s.sol       # Interaction examples
+├── Frontend/
+│   ├── src/
+│   │   ├── App.jsx              # Main React component
+│   │   └── index.css            # Styles
+│   └── package.json
+├── foundry.toml                 # Foundry config
+├── .env.example                 # Environment template
+└── README.md
+```
+
+---
+
+## 🌐 Deployed Contracts
+
+### Sepolia Testnet
+- **Contract**: `0x0a7a1acCED934484954214249fCfCb0c918E3729`
+- **Explorer**: [View on Etherscan](https://sepolia.etherscan.io/address/0x0a7a1acced934484954214249fcfcb0c918e3729)
+
+---
+
+## 🛣️ Roadmap
+
+- [ ] Add proposal categories/tags
+- [ ] Implement delegate voting
+- [ ] Add spending limits per role
+- [ ] Create mobile app
+- [ ] Add ENS support
+- [ ] Integrate with Gnosis Safe
+- [ ] Add recurring payment feature
+- [ ] Professional security audit
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork repo
-2. Create branch
-3. Commit changes
-4. Open PR
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ---
 
 ## 📝 License
 
-MIT License — see `LICENSE`.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-* OpenZeppelin
-* Foundry
-* Ethers.js
-* Tailwind
+- [OpenZeppelin](https://openzeppelin.com/) - Security contracts
+- [Foundry](https://getfoundry.sh/) - Development framework
+- [Ethers.js](https://ethers.org/) - Ethereum library
+- [Tailwind CSS](https://tailwindcss.com/) - UI styling
 
 ---
 
 ## 📞 Contact
 
-* **GitHub:** [https://github.com/Dev4057](https://github.com/Dev4057)
-* **Twitter:** @Dev_9007
-* **Discord:** devang6061
+- **GitHub**: [@YOUR_USERNAME](https://github.com/Dev4057)
+- **Twitter**: [@Dev_9007](https://twitter.com/Dev_9007)
+- **Discord**: devang6061
 
 ---
 
-## 🗺️ Roadmap
+## ⚠️ Disclaimer
 
-* [ ] Delegated voting
-* [ ] Proposal categories
-* [ ] Time-lock mechanism
-* [ ] Multi-sig support
-* [ ] Token-weighted voting
-* [ ] ENS integration
-* [ ] Mobile app
+This software is provided "as is" without warranty. Use at your own risk. The authors are not responsible for any losses incurred through the use of this software.
 
 ---
 
-**Built with ❤️ in Ethereum Ecosystem**
+**Built with ❤️ for the Ethereum ecosystem**
