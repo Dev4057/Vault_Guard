@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { AlertCircle, Wallet, Plus, CheckCircle, XCircle, Clock, Send, Users, Shield, TrendingUp, Settings, RefreshCw, Lock, Unlock } from 'lucide-react';
+import { AlertCircle, Wallet, Plus, CheckCircle, XCircle, Clock, Send, Users, Shield, TrendingUp, Settings, RefreshCw, Lock, Unlock, Copy, ExternalLink } from 'lucide-react';
 
-// Contract ABI (condensed for essential functions)
+// Your deployed contract address
+const DEFAULT_VAULT_ADDRESS = '0x0a7a1acCED934484954214249fCfCb0c918E3729';
+// Complete ABI
 const VAULTGUARD_ABI = [
   "function proposalCount() view returns (uint256)",
   "function approvalThreshold() view returns (uint256)",
@@ -18,8 +20,6 @@ const VAULTGUARD_ABI = [
   "function getVote(uint256 proposalId, address voter) view returns (uint8)",
   "function getTimeLockRemaining(uint256 proposalId) view returns (uint256)",
   "function hasRole(bytes32 role, address account) view returns (bool)",
-  "function pause()",
-  "function unpause()",
   "function addSigner(address signer)",
   "function removeSigner(address signer)",
   "function updateApprovalThreshold(uint256 newThreshold)",
@@ -40,16 +40,21 @@ const PROPOSAL_STATES = {
   8: { name: 'Expired', color: 'bg-orange-500', icon: AlertCircle }
 };
 
+const ROLES = {
+  ADMIN: '0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775',
+  SIGNER: '0xe2f4eaae4a9751e85a3e4a7b9587827a877f29914755229b07a7b2da98285f70',
+  PROPOSER: '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1',
+  EXECUTOR: '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63'
+};
+
 const VaultGuardDApp = () => {
-  // State management
   const [account, setAccount] = useState('');
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
-  const [chainId, setChainId] = useState(null);
+  const [network, setNetwork] = useState(null);
   
-  // Contract data
-  const [vaultAddress, setVaultAddress] = useState('');
+  const [vaultAddress, setVaultAddress] = useState(DEFAULT_VAULT_ADDRESS);
   const [treasuryBalance, setTreasuryBalance] = useState('0');
   const [proposalCount, setProposalCount] = useState(0);
   const [approvalThreshold, setApprovalThreshold] = useState(0);
@@ -62,34 +67,24 @@ const VaultGuardDApp = () => {
     isExecutor: false
   });
   
-  // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
-  // Form states
   const [newProposal, setNewProposal] = useState({
     recipient: '',
-    token: '0x0000000000000000000000000000000000000000',
+    token: ethers.ZeroAddress,
     amount: '',
     description: ''
   });
-
-  // Role constants
-  const ROLES = {
-    ADMIN: '0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775',
-    SIGNER: '0xe2f4eaae4a9751e85a3e4a7b9587827a877f29914755229b07a7b2da98285f70',
-    PROPOSER: '0x5e9c6d22e3f5a3e9c1c65f9e3d1d2b0f3a4f7c9e8b7d6e5f4c3b2a1d0e9f8b7c',
-    EXECUTOR: '0x8e2f4eaae4a9751e85a3e4a7b9587827a877f29914755229b07a7b2da98285f71'
-  };
 
   // Connect wallet
   const connectWallet = async () => {
     try {
       setError('');
       if (!window.ethereum) {
-        setError('Please install MetaMask or another Web3 wallet');
+        setError('Please install MetaMask');
         return;
       }
 
@@ -97,23 +92,19 @@ const VaultGuardDApp = () => {
         method: 'eth_requestAccounts' 
       });
       
-      const chainId = await window.ethereum.request({ 
-        method: 'eth_chainId' 
-      });
-
-      setAccount(accounts[0]);
-      setChainId(chainId);
-      
-      // Initialize ethers
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      
+      const network = await provider.getNetwork();
+
+      setAccount(accounts[0]);
       setProvider(provider);
       setSigner(signer);
+      setNetwork(network);
       
-      setSuccess('Wallet connected successfully!');
+      setSuccess('Wallet connected!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
+      console.error(err);
       setError('Failed to connect wallet: ' + err.message);
     }
   };
@@ -130,9 +121,10 @@ const VaultGuardDApp = () => {
       setContract(vaultContract);
       
       await loadContractData(vaultContract);
-      setSuccess('Contract loaded successfully!');
+      setSuccess('Contract loaded!');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
+      console.error(err);
       setError('Failed to load contract: ' + err.message);
     } finally {
       setLoading(false);
@@ -146,9 +138,9 @@ const VaultGuardDApp = () => {
     try {
       setLoading(true);
       
-      // Load basic info
+      // FIXED: Use ethers.ZeroAddress instead of empty string
       const [balance, count, threshold, signers] = await Promise.all([
-        vaultContract.getTreasuryBalance(''),
+        vaultContract.getTreasuryBalance(ethers.ZeroAddress),
         vaultContract.proposalCount(),
         vaultContract.approvalThreshold(),
         vaultContract.signerCount()
@@ -159,7 +151,7 @@ const VaultGuardDApp = () => {
       setApprovalThreshold(Number(threshold));
       setSignerCount(Number(signers));
       
-      // Check user roles
+      // Check roles
       const roles = await Promise.all([
         vaultContract.hasRole(ROLES.SIGNER, account),
         vaultContract.hasRole(ROLES.ADMIN, account),
@@ -179,13 +171,13 @@ const VaultGuardDApp = () => {
       
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load contract data: ' + err.message);
+      setError('Failed to load contract data');
     } finally {
       setLoading(false);
     }
   };
 
-  // Load all proposals
+  // Load proposals
   const loadProposals = async (vaultContract = contract, count = proposalCount) => {
     if (!vaultContract || count === 0) return;
     
@@ -252,14 +244,21 @@ const VaultGuardDApp = () => {
         newProposal.description
       );
       
+      setSuccess('Transaction submitted! Waiting for confirmation...');
       await tx.wait();
       
-      setSuccess('Proposal created successfully!');
-      setNewProposal({ recipient: '', token: '0x0000000000000000000000000000000000000000', amount: '', description: '' });
+      setSuccess('Proposal created!');
+      setNewProposal({ 
+        recipient: '', 
+        token: ethers.ZeroAddress, 
+        amount: '', 
+        description: '' 
+      });
       await loadContractData();
       setActiveTab('proposals');
     } catch (err) {
-      setError('Failed to create proposal: ' + err.message);
+      console.error(err);
+      setError('Failed to create proposal: ' + (err.reason || err.message));
     } finally {
       setLoading(false);
     }
@@ -271,15 +270,13 @@ const VaultGuardDApp = () => {
     
     try {
       setLoading(true);
-      setError('');
-      
       const tx = await contract.approve(proposalId);
+      setSuccess('Approving...');
       await tx.wait();
-      
       setSuccess(`Proposal #${proposalId} approved!`);
       await loadContractData();
     } catch (err) {
-      setError('Failed to approve proposal: ' + err.message);
+      setError('Failed to approve: ' + (err.reason || err.message));
     } finally {
       setLoading(false);
     }
@@ -291,15 +288,13 @@ const VaultGuardDApp = () => {
     
     try {
       setLoading(true);
-      setError('');
-      
       const tx = await contract.reject(proposalId);
+      setSuccess('Rejecting...');
       await tx.wait();
-      
       setSuccess(`Proposal #${proposalId} rejected!`);
       await loadContractData();
     } catch (err) {
-      setError('Failed to reject proposal: ' + err.message);
+      setError('Failed to reject: ' + (err.reason || err.message));
     } finally {
       setLoading(false);
     }
@@ -311,41 +306,19 @@ const VaultGuardDApp = () => {
     
     try {
       setLoading(true);
-      setError('');
-      
       const tx = await contract.executeProposal(proposalId);
+      setSuccess('Executing...');
       await tx.wait();
-      
-      setSuccess(`Proposal #${proposalId} executed successfully!`);
+      setSuccess(`Proposal #${proposalId} executed!`);
       await loadContractData();
     } catch (err) {
-      setError('Failed to execute proposal: ' + err.message);
+      setError('Failed to execute: ' + (err.reason || err.message));
     } finally {
       setLoading(false);
     }
   };
 
-  // Cancel proposal
-  const cancelProposal = async (proposalId) => {
-    if (!contract) return;
-    
-    try {
-      setLoading(true);
-      setError('');
-      
-      const tx = await contract.cancelProposal(proposalId);
-      await tx.wait();
-      
-      setSuccess(`Proposal #${proposalId} cancelled!`);
-      await loadContractData();
-    } catch (err) {
-      setError('Failed to cancel proposal: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Format time
+  // Format helpers
   const formatTimeRemaining = (seconds) => {
     if (seconds === 0) return 'Ready';
     const days = Math.floor(seconds / 86400);
@@ -357,16 +330,20 @@ const VaultGuardDApp = () => {
     return `${mins}m`;
   };
 
-  // Format date
   const formatDate = (timestamp) => {
     if (timestamp === 0) return 'N/A';
     return new Date(timestamp * 1000).toLocaleString();
   };
 
-  // Format address
   const formatAddress = (address) => {
     if (!address) return '';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setSuccess('Copied!');
+    setTimeout(() => setSuccess(''), 2000);
   };
 
   // Listen for account changes
@@ -387,26 +364,47 @@ const VaultGuardDApp = () => {
     }
   }, [contract]);
 
+  // Auto-load contract on wallet connect
+  useEffect(() => {
+    if (signer && vaultAddress && !contract) {
+      initializeContract();
+    }
+  }, [signer, vaultAddress]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <div className="bg-black/30 backdrop-blur-lg border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-purple-400" />
               <div>
                 <h1 className="text-2xl font-bold text-white">VaultGuard</h1>
-                <p className="text-sm text-gray-400">Multi-Signature Treasury</p>
+                <p className="text-sm text-gray-400">Multi-Sig Treasury on Sepolia</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
+              {network && (
+                <div className="px-3 py-1 bg-green-500/20 rounded-lg">
+                  <p className="text-sm text-green-400">
+                    {network.name === 'sepolia' ? '✓ Sepolia' : network.name}
+                  </p>
+                </div>
+              )}
+              
               {account ? (
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm text-gray-400">Connected</p>
-                    <p className="text-sm font-mono text-white">{formatAddress(account)}</p>
+                    <button
+                      onClick={() => copyToClipboard(account)}
+                      className="text-sm font-mono text-white hover:text-purple-400 flex items-center gap-1"
+                    >
+                      {formatAddress(account)}
+                      <Copy className="w-3 h-3" />
+                    </button>
                   </div>
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
                     <Wallet className="w-5 h-5 text-white" />
@@ -431,8 +429,8 @@ const VaultGuardDApp = () => {
         <div className="max-w-7xl mx-auto px-4 mt-4">
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-400" />
-            <p className="text-red-200">{error}</p>
-            <button onClick={() => setError('')} className="ml-auto text-red-200 text-xl">×</button>
+            <p className="text-red-200 flex-1">{error}</p>
+            <button onClick={() => setError('')} className="text-red-200 text-xl">×</button>
           </div>
         </div>
       )}
@@ -441,8 +439,8 @@ const VaultGuardDApp = () => {
         <div className="max-w-7xl mx-auto px-4 mt-4">
           <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-400" />
-            <p className="text-green-200">{success}</p>
-            <button onClick={() => setSuccess('')} className="ml-auto text-green-200 text-xl">×</button>
+            <p className="text-green-200 flex-1">{success}</p>
+            <button onClick={() => setSuccess('')} className="text-green-200 text-xl">×</button>
           </div>
         </div>
       )}
@@ -451,35 +449,73 @@ const VaultGuardDApp = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {!account ? (
           <div className="text-center py-20">
-            <Wallet className="w-20 h-20 text-purple-400 mx-auto mb-4" />
+            <Shield className="w-20 h-20 text-purple-400 mx-auto mb-4" />
             <h2 className="text-3xl font-bold text-white mb-2">Welcome to VaultGuard</h2>
-            <p className="text-gray-400 mb-8">Connect your wallet to get started</p>
+            <p className="text-gray-400 mb-4">Multi-Signature Treasury Management</p>
+            <div className="bg-white/5 rounded-lg p-6 max-w-2xl mx-auto text-left">
+              <h3 className="text-white font-semibold mb-3">How it works:</h3>
+              <ol className="text-gray-300 space-y-2 list-decimal list-inside">
+                <li>Connect your MetaMask wallet (must be on Sepolia testnet)</li>
+                <li>Create spending proposals (if you're a proposer)</li>
+                <li>Signers vote to approve/reject (need 3 out of 5 approvals)</li>
+                <li>After approval, 48-hour time-lock starts</li>
+                <li>Execute proposal after time-lock expires</li>
+              </ol>
+              <div className="mt-4 p-3 bg-yellow-500/10 rounded border border-yellow-500/30">
+                <p className="text-yellow-200 text-sm">
+                  <strong>⚠️ Note:</strong> Make sure you're connected to Sepolia testnet
+                </p>
+              </div>
+            </div>
           </div>
         ) : !contract ? (
           <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-8">
-            <h2 className="text-2xl font-bold text-white mb-6">Enter Vault Address</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">Contract Address</h2>
+            <p className="text-gray-400 mb-4">Default Sepolia contract is pre-filled. Change if using different deployment.</p>
             <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="0x..."
-                value={vaultAddress}
-                onChange={(e) => setVaultAddress(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">VaultGuard Contract Address</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={vaultAddress}
+                  onChange={(e) => setVaultAddress(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                />
+              </div>
               <button
                 onClick={initializeContract}
                 disabled={!vaultAddress || loading}
-                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-white hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50"
+                className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-white hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {loading ? 'Loading...' : 'Connect to Vault'}
+                {loading ? (
+                  <>
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <Shield className="w-5 h-5" />
+                    Connect to Vault
+                  </>
+                )}
               </button>
+              <a
+                href={`https://sepolia.etherscan.io/address/${vaultAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center text-purple-400 hover:text-purple-300 text-sm flex items-center justify-center gap-1"
+              >
+                View on Etherscan
+                <ExternalLink className="w-4 h-4" />
+              </a>
             </div>
           </div>
         ) : (
           <>
-            {/* Navigation Tabs */}
+            {/* Tabs */}
             <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-              {['dashboard', 'proposals', 'create', 'admin'].map((tab) => (
+              {['dashboard', 'proposals', 'create'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -494,10 +530,9 @@ const VaultGuardDApp = () => {
               ))}
             </div>
 
-            {/* Dashboard Tab */}
+            {/* Dashboard */}
             {activeTab === 'dashboard' && (
               <div className="space-y-6">
-                {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
                     <div className="flex items-center justify-between mb-2">
@@ -506,20 +541,20 @@ const VaultGuardDApp = () => {
                         <RefreshCw className="w-4 h-4" />
                       </button>
                     </div>
-                    <p className="text-gray-400 text-sm">Treasury Balance</p>
+                    <p className="text-gray-400 text-sm">Treasury</p>
                     <p className="text-3xl font-bold text-white">{parseFloat(treasuryBalance).toFixed(4)} ETH</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
                     <Clock className="w-8 h-8 text-blue-400 mb-2" />
-                    <p className="text-gray-400 text-sm">Total Proposals</p>
+                    <p className="text-gray-400 text-sm">Proposals</p>
                     <p className="text-3xl font-bold text-white">{proposalCount}</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
                     <Users className="w-8 h-8 text-green-400 mb-2" />
-                    <p className="text-gray-400 text-sm">Approval Threshold</p>
-                    <p className="text-3xl font-bold text-white">{approvalThreshold} / {signerCount}</p>
+                    <p className="text-gray-400 text-sm">Threshold</p>
+                    <p className="text-3xl font-bold text-white">{approvalThreshold}/{signerCount}</p>
                   </div>
                   
                   <div className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
@@ -527,9 +562,8 @@ const VaultGuardDApp = () => {
                     <p className="text-gray-400 text-sm">Your Roles</p>
                     <div className="flex flex-wrap gap-1 mt-2">
                       {userRoles.isSigner && <span className="px-2 py-1 bg-purple-500/30 rounded text-xs text-purple-200">Signer</span>}
-                      {userRoles.isAdmin && <span className="px-2 py-1 bg-red-500/30 rounded text-xs text-red-200">Admin</span>}
                       {userRoles.isProposer && <span className="px-2 py-1 bg-blue-500/30 rounded text-xs text-blue-200">Proposer</span>}
-                      {userRoles.isExecutor && <span className="px-2 py-1 bg-green-500/30 rounded text-xs text-green-200">Executor</span>}
+                      {!userRoles.isSigner && !userRoles.isProposer && <span className="px-2 py-1 bg-gray-500/30 rounded text-xs text-gray-200">None</span>}
                     </div>
                   </div>
                 </div>
@@ -537,38 +571,40 @@ const VaultGuardDApp = () => {
                 {/* Recent Proposals */}
                 <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
                   <h3 className="text-xl font-bold text-white mb-4">Recent Proposals</h3>
-                  <div className="space-y-3">
-                    {proposals.slice(0, 5).map((proposal) => {
-                      const stateInfo = PROPOSAL_STATES[proposal.state];
-                      const StateIcon = stateInfo.icon;
-                      return (
-                        <div key={proposal.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <span className="text-gray-400 font-mono">#{proposal.id}</span>
-                                <span className={`px-3 py-1 ${stateInfo.color} rounded-full text-xs font-semibold text-white flex items-center gap-1`}>
-                                  <StateIcon className="w-3 h-3" />
-                                  {stateInfo.name}
-                                </span>
-                              </div>
-                              <p className="text-white font-medium">{proposal.description}</p>
-                              <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-                                <span>{proposal.amount} ETH</span>
-                                <span>→ {formatAddress(proposal.recipient)}</span>
-                                <span>{proposal.approvalCount}/{approvalThreshold} approvals</span>
+                  {proposals.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="w-12 h-12 text-gray-600 mx-auto mb-2" />
+                      <p className="text-gray-400">No proposals yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {proposals.slice(0, 5).map((proposal) => {
+                        const stateInfo = PROPOSAL_STATES[proposal.state];
+                        const StateIcon = stateInfo.icon;
+                        return (
+                          <div key={proposal.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-gray-400 font-mono">#{proposal.id}</span>
+                                  <span className={`px-3 py-1 ${stateInfo.color} rounded-full text-xs font-semibold text-white flex items-center gap-1`}>
+                                    <StateIcon className="w-3 h-3" />
+                                    {stateInfo.name}
+                                  </span>
+                                </div>
+                                <p className="text-white font-medium mb-2">{proposal.description}</p>
+                                <div className="flex items-center gap-4 text-sm text-gray-400">
+                                  <span>{proposal.amount} ETH</span>
+                                  <span>→ {formatAddress(proposal.recipient)}</span>
+                                  <span>{proposal.approvalCount}/{approvalThreshold} approvals</span>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                    {proposals.length === 0 && (
-                      <div className="text-center py-8">
-                        <p className="text-gray-400">No proposals yet</p>
-                      </div>
-                    )}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -578,141 +614,148 @@ const VaultGuardDApp = () => {
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold text-white">All Proposals</h2>
-                  <button onClick={() => loadContractData()} className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4" />
+                  <button 
+                    onClick={() => loadContractData()} 
+                    disabled={loading}
+                    className="px-4 py-2 bg-white/10 rounded-lg text-white hover:bg-white/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     Refresh
                   </button>
                 </div>
                 
-                {proposals.map((proposal) => {
-                  const stateInfo = PROPOSAL_STATES[proposal.state];
-                  const StateIcon = stateInfo.icon;
-                  const canVote = userRoles.isSigner && proposal.state === 1;
-                  const canExecute = userRoles.isExecutor && proposal.state === 4;
-                  const canCancel = userRoles.isAdmin && proposal.state !== 5;
-                  
-                  return (
-                    <div key={proposal.id} className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <div className="flex items-center gap-3 mb-2">
-                            <span className="text-2xl font-bold text-white">#{proposal.id}</span>
-                            <span className={`px-3 py-1 ${stateInfo.color} rounded-full text-xs font-semibold text-white flex items-center gap-1`}>
-                              <StateIcon className="w-3 h-3" />
-                              {stateInfo.name}
-                            </span>
-                          </div>
-                          <h3 className="text-xl text-white font-semibold">{proposal.description}</h3>
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div>
-                          <p className="text-gray-400 text-sm">Amount</p>
-                          <p className="text-white font-semibold">{proposal.amount} ETH</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 text-sm">Recipient</p>
-                          <p className="text-white font-mono text-sm">{formatAddress(proposal.recipient)}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 text-sm">Approvals</p>
-                          <p className="text-white font-semibold">{proposal.approvalCount} / {approvalThreshold}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-400 text-sm">Rejections</p>
-                          <p className="text-white font-semibold">{proposal.rejectionCount}</p>
-                        </div>
-                      </div>
-                      
-                      {proposal.state === 3 && proposal.timelockRemaining > 0 && (
-                        <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 mb-4">
-                          <div className="flex items-center gap-2">
-                            <Lock className="w-4 h-4 text-yellow-400" />
-                            <span className="text-yellow-200 text-sm">Time-lock remaining: {formatTimeRemaining(proposal.timelockRemaining)}</span>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-wrap gap-2">
-                        {canVote && proposal.userVote === 0 && (
-                          <>
-                            <button
-                              onClick={() => approveProposal(proposal.id)}
-                              disabled={loading}
-                              className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => rejectProposal(proposal.id)}
-                              disabled={loading}
-                              className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
-                            >
-                              <XCircle className="w-4 h-4" />
-                              Reject
-                            </button>
-                          </>
-                        )}
-                        
-                        {canVote && proposal.userVote === 1 && (
-                          <div className="px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            You approved this
-                          </div>
-                        )}
-                        
-                        {canVote && proposal.userVote === 2 && (
-                          <div className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 flex items-center gap-2">
-                            <XCircle className="w-4 h-4" />
-                            You rejected this
-                          </div>
-                        )}
-                        
-                        {canExecute && (
-                          <button
-                            onClick={() => executeProposal(proposal.id)}
-                            disabled={loading}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
-                          >
-                            <Send className="w-4 h-4" />
-                            Execute
-                          </button>
-                        )}
-                        
-                        {canCancel && (
-                          <button
-                            onClick={() => cancelProposal(proposal.id)}
-                            disabled={loading}
-                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white font-semibold transition-all disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                      
-                      <div className="mt-4 pt-4 border-t border-white/10 text-sm text-gray-400">
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          <div>Created: {formatDate(proposal.createdAt)}</div>
-                          {proposal.queuedAt > 0 && <div>Queued: {formatDate(proposal.queuedAt)}</div>}
-                          {proposal.executedAt > 0 && <div>Executed: {formatDate(proposal.executedAt)}</div>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {proposals.length === 0 && (
+                {proposals.length === 0 ? (
                   <div className="text-center py-12">
                     <Clock className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                     <p className="text-gray-400">No proposals yet</p>
+                    <button
+                      onClick={() => setActiveTab('create')}
+                      className="mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all"
+                    >
+                      Create First Proposal
+                    </button>
                   </div>
+                ) : (
+                  proposals.map((proposal) => {
+                    const stateInfo = PROPOSAL_STATES[proposal.state];
+                    const StateIcon = stateInfo.icon;
+                    const canVote = userRoles.isSigner && proposal.state === 1 && proposal.userVote === 0;
+                    const canExecute = userRoles.isExecutor && proposal.state === 4;
+                    
+                    return (
+                      <div key={proposal.id} className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-2xl font-bold text-white">#{proposal.id}</span>
+                              <span className={`px-3 py-1 ${stateInfo.color} rounded-full text-xs font-semibold text-white flex items-center gap-1`}>
+                                <StateIcon className="w-3 h-3" />
+                                {stateInfo.name}
+                              </span>
+                            </div>
+                            <h3 className="text-xl text-white font-semibold">{proposal.description}</h3>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <p className="text-gray-400 text-sm">Amount</p>
+                            <p className="text-white font-semibold">{proposal.amount} ETH</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">Recipient</p>
+                            <button
+                              onClick={() => copyToClipboard(proposal.recipient)}
+                              className="text-white font-mono text-sm hover:text-purple-400 flex items-center gap-1"
+                            >
+                              {formatAddress(proposal.recipient)}
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">Approvals</p>
+                            <p className="text-white font-semibold">{proposal.approvalCount}/{approvalThreshold}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">Rejections</p>
+                            <p className="text-white font-semibold">{proposal.rejectionCount}</p>
+                          </div>
+                        </div>
+                        
+                        {proposal.state === 3 && proposal.timelockRemaining > 0 && (
+                          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-3 mb-4">
+                            <div className="flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-yellow-400" />
+                              <span className="text-yellow-200 text-sm">
+                                Time-lock remaining: {formatTimeRemaining(proposal.timelockRemaining)}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-wrap gap-2">
+                          {canVote && (
+                            <>
+                              <button
+                                onClick={() => approveProposal(proposal.id)}
+                                disabled={loading}
+                                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => rejectProposal(proposal.id)}
+                                disabled={loading}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <XCircle className="w-4 h-4" />
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          
+                          {proposal.userVote === 1 && (
+                            <div className="px-4 py-2 bg-green-500/20 border border-green-500/50 rounded-lg text-green-200 flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4" />
+                              You approved
+                            </div>
+                          )}
+                          
+                          {proposal.userVote === 2 && (
+                            <div className="px-4 py-2 bg-red-500/20 border border-red-500/50 rounded-lg text-red-200 flex items-center gap-2">
+                              <XCircle className="w-4 h-4" />
+                              You rejected
+                            </div>
+                          )}
+                          
+                          {canExecute && (
+                            <button
+                              onClick={() => executeProposal(proposal.id)}
+                              disabled={loading}
+                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-semibold transition-all flex items-center gap-2 disabled:opacity-50"
+                            >
+                              <Send className="w-4 h-4" />
+                              Execute Now
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4 pt-4 border-t border-white/10 text-sm text-gray-400">
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            <div>Created: {formatDate(proposal.createdAt)}</div>
+                            {proposal.queuedAt > 0 && <div>Queued: {formatDate(proposal.queuedAt)}</div>}
+                            {proposal.executedAt > 0 && <div>Executed: {formatDate(proposal.executedAt)}</div>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             )}
 
-            {/* Create Proposal Tab */}
+            {/* Create Proposal */}
             {activeTab === 'create' && (
               <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
                 <h2 className="text-2xl font-bold text-white mb-6">Create New Proposal</h2>
@@ -721,53 +764,60 @@ const VaultGuardDApp = () => {
                   <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
                     <AlertCircle className="w-5 h-5 text-red-400 mb-2" />
                     <p className="text-red-200">You don't have permission to create proposals</p>
+                    <p className="text-red-300 text-sm mt-2">Only signers and designated proposers can create proposals.</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-gray-400 text-sm mb-2">Recipient Address</label>
+                      <label className="block text-gray-400 text-sm mb-2">Recipient Address *</label>
                       <input
                         type="text"
                         placeholder="0x..."
                         value={newProposal.recipient}
                         onChange={(e) => setNewProposal({...newProposal, recipient: e.target.value})}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-gray-400 text-sm mb-2">Token Address (0x0...0 for ETH)</label>
-                      <input
-                        type="text"
-                        placeholder="0x0000000000000000000000000000000000000000"
-                        value={newProposal.token}
-                        onChange={(e) => setNewProposal({...newProposal, token: e.target.value})}
-                        className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-gray-400 text-sm mb-2">Amount (ETH)</label>
+                      <label className="block text-gray-400 text-sm mb-2">Amount (ETH) *</label>
                       <input
                         type="number"
-                        step="0.01"
+                        step="0.001"
                         placeholder="0.0"
                         value={newProposal.amount}
                         onChange={(e) => setNewProposal({...newProposal, amount: e.target.value})}
                         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
-                      <p className="text-gray-500 text-sm mt-1">Available: {treasuryBalance} ETH</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        Available: {treasuryBalance} ETH
+                      </p>
                     </div>
                     
                     <div>
-                      <label className="block text-gray-400 text-sm mb-2">Description</label>
+                      <label className="block text-gray-400 text-sm mb-2">Description *</label>
                       <textarea
-                        placeholder="Describe the purpose of this proposal..."
+                        placeholder="e.g., Monthly developer payment for Q4 work"
                         value={newProposal.description}
                         onChange={(e) => setNewProposal({...newProposal, description: e.target.value})}
                         rows={4}
                         className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       />
+                      <p className="text-gray-500 text-sm mt-1">
+                        Provide clear details about why this proposal is needed
+                      </p>
+                    </div>
+                    
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                      <p className="text-blue-200 text-sm">
+                        <strong>ℹ️ What happens next:</strong>
+                      </p>
+                      <ol className="text-blue-300 text-sm mt-2 space-y-1 list-decimal list-inside">
+                        <li>Your proposal will be created and become active</li>
+                        <li>Signers have 7 days to vote (need {approvalThreshold} approvals)</li>
+                        <li>If approved, 48-hour time-lock begins</li>
+                        <li>After time-lock, proposal can be executed</li>
+                      </ol>
                     </div>
                     
                     <button
@@ -775,115 +825,18 @@ const VaultGuardDApp = () => {
                       disabled={loading || !newProposal.recipient || !newProposal.amount || !newProposal.description}
                       className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg font-semibold text-white hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      <Plus className="w-5 h-5" />
-                      {loading ? 'Creating...' : 'Create Proposal'}
+                      {loading ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5" />
+                          Create Proposal
+                        </>
+                      )}
                     </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Admin Tab */}
-            {activeTab === 'admin' && (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-bold text-white">Admin Panel</h2>
-                
-                {!userRoles.isAdmin ? (
-                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
-                    <AlertCircle className="w-5 h-5 text-red-400 mb-2" />
-                    <p className="text-red-200">You don't have admin permissions</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Contract Info */}
-                    <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-                      <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                        <Settings className="w-5 h-5" />
-                        Contract Settings
-                      </h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Contract Address</span>
-                          <span className="text-white font-mono text-sm">{formatAddress(vaultAddress)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Approval Threshold</span>
-                          <span className="text-white font-semibold">{approvalThreshold}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Total Signers</span>
-                          <span className="text-white font-semibold">{signerCount}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Time Lock</span>
-                          <span className="text-white font-semibold">2 days</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-400">Voting Period</span>
-                          <span className="text-white font-semibold">7 days</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Quick Actions */}
-                    <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
-                      <h3 className="text-xl font-bold text-white mb-4">Quick Actions</h3>
-                      <div className="space-y-3">
-                        <button
-                          onClick={() => {
-                            const address = prompt('Enter signer address to add:');
-                            if (address) {
-                              contract.addSigner(address).then(tx => tx.wait()).then(() => {
-                                setSuccess('Signer added!');
-                                loadContractData();
-                              }).catch(e => setError(e.message));
-                            }
-                          }}
-                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-all"
-                        >
-                          Add Signer
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            const threshold = prompt('Enter new approval threshold:');
-                            if (threshold) {
-                              contract.updateApprovalThreshold(threshold).then(tx => tx.wait()).then(() => {
-                                setSuccess('Threshold updated!');
-                                loadContractData();
-                              }).catch(e => setError(e.message));
-                            }
-                          }}
-                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-semibold transition-all"
-                        >
-                          Update Threshold
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            if (window.confirm('Are you sure you want to pause the contract?')) {
-                              contract.pause().then(tx => tx.wait()).then(() => {
-                                setSuccess('Contract paused!');
-                              }).catch(e => setError(e.message));
-                            }
-                          }}
-                          className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white font-semibold transition-all"
-                        >
-                          Pause Contract
-                        </button>
-                        
-                        <button
-                          onClick={() => {
-                            contract.unpause().then(tx => tx.wait()).then(() => {
-                              setSuccess('Contract unpaused!');
-                            }).catch(e => setError(e.message));
-                          }}
-                          className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white font-semibold transition-all"
-                        >
-                          Unpause Contract
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 )}
               </div>
@@ -893,9 +846,17 @@ const VaultGuardDApp = () => {
       </div>
 
       {/* Footer */}
-      <div className="mt-12 pb-8 text-center text-gray-500 text-sm">
-        <p>VaultGuard Multi-Signature Treasury • Secured by Time-Locks & M-of-N Approvals</p>
-        <p className="mt-1">Always verify contract addresses and transactions before signing</p>
+      <div className="mt-12 pb-8 text-center text-gray-500 text-sm space-y-2">
+        <p>VaultGuard Multi-Signature Treasury • Secured by Time-Locks & 3-of-5 Approvals</p>
+        <p>Contract: <button onClick={() => copyToClipboard(vaultAddress)} className="text-purple-400 hover:text-purple-300 font-mono">{formatAddress(vaultAddress)}</button></p>
+        <a 
+          href={`https://sepolia.etherscan.io/address/${vaultAddress}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1"
+        >
+          View on Etherscan <ExternalLink className="w-3 h-3" />
+        </a>
       </div>
     </div>
   );
