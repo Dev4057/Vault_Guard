@@ -8,6 +8,7 @@ cat > README.md << 'EOF'
 
 **VaultGuard** is a secure, production-ready Multi-Signature Treasury Management system built on Ethereum. It requires multiple approvals (M-of-N) for all spending decisions, with built-in time-locks and role-based access control.
 
+
 ![Dashboard](image.png)
 
 ## ✨ Features
